@@ -60,3 +60,25 @@ export type UsesItem = {
   category: "LANGUAGES & BACKEND" | "EVERYDAY TOOLS" | "OFF THE DESK";
   tag: string;
 };
+
+/**
+ * Tipos de entrada para la escritura (admin + bot de Telegram).
+ * `New*` = crear (sin id, lo asigna el repositorio). `*Patch` = actualización
+ * parcial. `NowStatus` es singleton, así que solo se actualiza (sin id).
+ */
+export type NowStatusInput = Pick<NowStatus, "headline" | "weekSummary" | "tickerItems">;
+
+export type NewProject = Omit<Project, "id">;
+export type ProjectPatch = Partial<NewProject>;
+
+export type NewNote = Omit<Note, "id">;
+export type NotePatch = Partial<NewNote>;
+
+export type NewTrainingLog = Omit<TrainingLog, "id">;
+export type TrainingLogPatch = Partial<NewTrainingLog>;
+
+export type NewBook = Omit<Book, "id">;
+export type BookPatch = Partial<NewBook>;
+
+export type NewUsesItem = Omit<UsesItem, "id">;
+export type UsesItemPatch = Partial<NewUsesItem>;

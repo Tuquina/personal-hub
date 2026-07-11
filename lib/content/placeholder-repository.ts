@@ -1,5 +1,24 @@
 import type { ContentRepository } from "./content-repository";
-import type { Book, Note, NowStatus, Project, TrainingLog, TrainingStats, UsesItem } from "./types";
+import type {
+  Book,
+  BookPatch,
+  NewBook,
+  NewNote,
+  NewProject,
+  NewTrainingLog,
+  NewUsesItem,
+  Note,
+  NotePatch,
+  NowStatus,
+  NowStatusInput,
+  Project,
+  ProjectPatch,
+  TrainingLog,
+  TrainingLogPatch,
+  TrainingStats,
+  UsesItem,
+  UsesItemPatch,
+} from "./types";
 
 /**
  * ⚠️ TODO: contenido placeholder.
@@ -124,7 +143,34 @@ const USES: UsesItem[] = [
   { id: "u14", name: "Mate + termo", category: "OFF THE DESK", tag: "NON-NEGOTIABLE" },
 ];
 
+/** Helpers de escritura sobre arrays en memoria (solo para el placeholder). */
+function newId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function insert<T extends { id: string }>(arr: T[], input: Omit<T, "id">): T {
+  const created = { ...(input as object), id: newId() } as T;
+  arr.push(created);
+  return created;
+}
+
+function patch<T extends { id: string }>(arr: T[], id: string, changes: Partial<Omit<T, "id">>, label: string): T {
+  const item = arr.find((x) => x.id === id);
+  if (!item) throw new Error(`${label} no encontrado: ${id}`);
+  Object.assign(item, changes);
+  return item;
+}
+
+function remove<T extends { id: string }>(arr: T[], id: string, label: string): void {
+  const i = arr.findIndex((x) => x.id === id);
+  if (i === -1) throw new Error(`${label} no encontrado: ${id}`);
+  arr.splice(i, 1);
+}
+
 export class PlaceholderContentRepository implements ContentRepository {
+  // --- lectura ---
   async getNowStatus() { return NOW_STATUS; }
 
   async getProjects() { return PROJECTS; }
@@ -139,4 +185,33 @@ export class PlaceholderContentRepository implements ContentRepository {
   async getBooks() { return BOOKS; }
 
   async getUsesItems() { return USES; }
+
+  // --- escritura ---
+  async updateNowStatus(input: NowStatusInput) {
+    NOW_STATUS.headline = input.headline;
+    NOW_STATUS.weekSummary = input.weekSummary;
+    NOW_STATUS.tickerItems = input.tickerItems;
+    NOW_STATUS.lastUpdated = new Date().toUTCString();
+    return NOW_STATUS;
+  }
+
+  async createProject(input: NewProject) { return insert(PROJECTS, input); }
+  async updateProject(id: string, changes: ProjectPatch) { return patch(PROJECTS, id, changes, "project"); }
+  async deleteProject(id: string) { remove(PROJECTS, id, "project"); }
+
+  async createNote(input: NewNote) { return insert(NOTES, input); }
+  async updateNote(id: string, changes: NotePatch) { return patch(NOTES, id, changes, "note"); }
+  async deleteNote(id: string) { remove(NOTES, id, "note"); }
+
+  async createTrainingLog(input: NewTrainingLog) { return insert(TRAINING_LOGS, input); }
+  async updateTrainingLog(id: string, changes: TrainingLogPatch) { return patch(TRAINING_LOGS, id, changes, "training log"); }
+  async deleteTrainingLog(id: string) { remove(TRAINING_LOGS, id, "training log"); }
+
+  async createBook(input: NewBook) { return insert(BOOKS, input); }
+  async updateBook(id: string, changes: BookPatch) { return patch(BOOKS, id, changes, "book"); }
+  async deleteBook(id: string) { remove(BOOKS, id, "book"); }
+
+  async createUsesItem(input: NewUsesItem) { return insert(USES, input); }
+  async updateUsesItem(id: string, changes: UsesItemPatch) { return patch(USES, id, changes, "uses item"); }
+  async deleteUsesItem(id: string) { remove(USES, id, "uses item"); }
 }
