@@ -1,6 +1,7 @@
 -- Fase 2: schema de Supabase para reemplazar PlaceholderContentRepository.
--- Lectura publica para todo, escritura solo para el uid de Fernando.
--- Correr esto en el SQL editor de Supabase.
+-- Lectura publica para todo, escritura solo para Fernando.
+-- YA APLICADO en el proyecto "personal-hub" (chytzzgharuncthfzenx) via el conector.
+-- Este archivo queda como fuente de verdad / para recrear el schema.
 
 create table now_status (
   id int primary key default 1,
@@ -67,9 +68,9 @@ create table uses_items (
   sort_order int not null default 0
 );
 
--- RLS: lectura publica, escritura solo para tu propio usuario autenticado.
--- Reemplazar '<TU_USER_UUID>' por tu uid real (Supabase Studio > Authentication > Users)
--- despues de crear tu primer usuario admin.
+-- RLS: lectura publica, escritura solo para el usuario autenticado cuyo email
+-- es el de Fernando. Se usa el claim de email del JWT en vez del uid, asi la
+-- policy funciona desde el primer login (el uid recien existe tras el magic link).
 
 alter table now_status enable row level security;
 alter table projects enable row level security;
@@ -85,12 +86,12 @@ create policy "public read" on training_logs for select using (true);
 create policy "public read" on books for select using (true);
 create policy "public read" on uses_items for select using (true);
 
-create policy "owner write" on now_status for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
-create policy "owner write" on projects for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
-create policy "owner write" on notes for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
-create policy "owner write" on training_logs for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
-create policy "owner write" on books for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
-create policy "owner write" on uses_items for all using (auth.uid() = '<TU_USER_UUID>') with check (auth.uid() = '<TU_USER_UUID>');
+create policy "owner write" on now_status for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
+create policy "owner write" on projects for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
+create policy "owner write" on notes for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
+create policy "owner write" on training_logs for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
+create policy "owner write" on books for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
+create policy "owner write" on uses_items for all using ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com') with check ((auth.jwt() ->> 'email') = 'fernandotuquina@gmail.com');
 
 -- Storage: bucket publico de solo-lectura para imagenes (covers de libros, etc.)
 -- Crear a mano en Supabase Studio > Storage > New bucket > "media", marcar como publico.
