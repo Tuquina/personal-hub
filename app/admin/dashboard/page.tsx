@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Tab = "now" | "projects" | "notes" | "training" | "reading" | "uses";
 
@@ -67,7 +68,11 @@ export default function AdminDashboardPage() {
           ))}
         </div>
         <button
-          onClick={() => router.push("/")}
+          onClick={async () => {
+            await createSupabaseBrowserClient().auth.signOut();
+            router.push("/");
+            router.refresh();
+          }}
           className="mt-auto mx-7 text-left bg-transparent border-none border-t border-soft py-4 text-faint font-mono text-xs cursor-pointer transition-colors duration-250 hover:text-primary"
         >
           ← log out

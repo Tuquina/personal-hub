@@ -1,15 +1,35 @@
 "use client";
 
-// ⚠️ TODO: esto es solo la UI. Login funciona con Supabase Auth (magic link)
-// en fase 2 -- ver docs/supabase-schema.sql. Por ahora el boton solo navega,
-// no autentica a nadie. No dejar este archivo asi en produccion.
+// Login real con Supabase Auth (magic link). El acceso de escritura queda
+// igualmente atado por RLS al email de Fernando, y /admin/dashboard lo protege
+// el middleware. Ver docs/supabase-schema.sql.
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+type Status = "idle" | "sending" | "sent" | "error";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [message, setMessage] = useState("");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("sending");
+    setMessage("");
+    const supabase = createSupabaseBrowserClient();
+    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/admin/dashboard`;
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+    if (error) {
+      setStatus("error");
+      setMessage(error.message);
+    } else {
+      setStatus("sent");
+    }
+  }
 
   return (
     <>
@@ -24,33 +44,44 @@ export default function AdminLoginPage() {
             Hola de nuevo<span className="text-accent">.</span>
           </div>
           <div className="font-serif italic text-body text-muted mb-8">the only user this page was made for</div>
-          <form
-            className="flex flex-col gap-3.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              router.push("/admin/dashboard");
-            }}
-          >
-            <input
-              type="email"
-              placeholder="fernandotuquina@gmail.com"
-              className="bg-ink/60 border border-strong rounded-lg px-4 py-[13px] text-primary font-mono text-code transition-colors duration-250 outline-none focus:border-accent"
-            />
-            <input
-              type="password"
-              placeholder="••••••••••••"
-              className="bg-ink/60 border border-strong rounded-lg px-4 py-[13px] text-primary font-mono text-code transition-colors duration-250 outline-none focus:border-accent"
-            />
-            <button
-              type="submit"
-              className="mt-2 bg-accent border-none rounded-lg py-3.5 text-ink font-sans font-bold text-sm cursor-pointer transition-shadow duration-250 hover:shadow-glow-btn"
-            >
-              Enter →
-            </button>
-          </form>
-          <div className="mt-6 font-mono text-label text-faint text-center">
-            SUPABASE AUTH · MAGIC LINK AVAILABLE
-          </div>
+
+          {status === "sent" ? (
+            <div className="flex flex-col gap-3">
+              <div className="text-body text-secondary leading-[1.6]">
+                Te mandé un magic link a <span className="text-primary">{email}</span>. Abrilo en este dispositivo
+                para entrar.
+              </div>
+              <button
+                onClick={() => setStatus("idle")}
+                className="self-start font-mono text-meta text-faint hover:text-primary transition-colors duration-250"
+              >
+                ← usar otro email
+              </button>
+            </div>
+          ) : (
+            <form className="flex flex-col gap-3.5" onSubmit={onSubmit}>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="fernandotuquina@gmail.com"
+                className="bg-ink/60 border border-strong rounded-lg px-4 py-[13px] text-primary font-mono text-code transition-colors duration-250 outline-none focus:border-accent"
+              />
+              <button
+                type="submit"
+                disabled={status === "sending"}
+                className="mt-2 bg-accent border-none rounded-lg py-3.5 text-ink font-sans font-bold text-sm cursor-pointer transition-shadow duration-250 hover:shadow-glow-btn disabled:opacity-60 disabled:cursor-default"
+              >
+                {status === "sending" ? "Enviando…" : "Send magic link →"}
+              </button>
+              {status === "error" && (
+                <div className="font-mono text-meta text-accent">{message || "Algo falló. Probá de nuevo."}</div>
+              )}
+            </form>
+          )}
+
+          <div className="mt-6 font-mono text-label text-faint text-center">SUPABASE AUTH · MAGIC LINK</div>
         </div>
       </div>
       <Footer />
