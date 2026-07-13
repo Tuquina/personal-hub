@@ -73,7 +73,8 @@ Implementado y verificado (`npm install && npx tsc --noEmit && npx next build` c
   - `content-repository.ts` — **el puerto**. Única interface que el resto de la app conoce.
   - `placeholder-repository.ts` — adapter actual, con el contenido de ejemplo que generó Claude Design (⚠️ confirmado que NO es real, es placeholder).
   - `get-repository.ts` — composition root. Acá se cambia de adapter con una sola línea.
-- **Admin:** UI completa del login y del dashboard (tabs: now / projects / notes / training / reading / uses), pero **sin autenticación real todavía** — el login solo navega, no valida nada (marcado con `⚠️ TODO` en el código).
+- **Admin (Fase B hecha):** login real con Supabase Auth (magic link) + `middleware.ts` que protege `/admin/dashboard`; el dashboard lee datos reales y tiene CRUD funcional (create/update/delete) por tab vía server actions, guardadas por sesión y RLS.
+- **Supabase conectado (Fase B):** proyecto `personal-hub` (`chytzzgharuncthfzenx`), `SupabaseContentRepository` implementa el puerto (lectura + escritura), seleccionado por env var en `get-repository.ts` con fallback al placeholder. Ver [`docs/supabase-schema.sql`](docs/supabase-schema.sql).
 - **`docs/supabase-schema.sql`** — schema completo con RLS ya escrito (lectura pública, escritura solo para el uid de Fernando), listo para correr en Supabase.
 
 ## 5. Arquitectura — puertos y adaptadores
@@ -90,9 +91,9 @@ Ni las páginas ni el futuro bot de Telegram importan Supabase directo — solo 
 
 ## 6. Roadmap pendiente
 
-1. **`SupabaseContentRepository`** — implementar el puerto contra Supabase (correr primero `docs/supabase-schema.sql` en un proyecto nuevo de Supabase).
-2. **Auth real** — proteger `/admin/dashboard` con Supabase Auth (magic link) vía middleware de Next.js, reemplazando el login placeholder.
-3. **Cargar contenido real** — reemplazar los arrays de `placeholder-repository.ts` con los datos reales de Fernando (vía Supabase directo o desde el admin panel una vez conectado).
+1. ✅ **`SupabaseContentRepository`** — hecho (Fase B). Puerto implementado contra Supabase con lectura + escritura.
+2. ✅ **Auth real** — hecho (Fase B). Magic link + `middleware.ts` protegiendo `/admin/dashboard`.
+3. **Cargar contenido real** — reemplazar el seed placeholder de Supabase con los datos reales de Fernando, desde el admin panel (ya funcional) o directo en Supabase. **Pendiente.**
 4. **Bot de Telegram** — `app/api/telegram-webhook/route.ts`. Flujo: Telegram → webhook serverless en Vercel → valida `chat_id` contra `TELEGRAM_ADMIN_CHAT_ID` → interpreta el mensaje con una IA gratuita → llama a `ContentRepository` para leer/escribir → responde por Telegram. Variables ya están en `.env.example`.
 5. **Deploy** — conectar el repo de GitHub a Vercel (Import Git Repository) y cargar las env vars de `.env.example` en el dashboard.
 
