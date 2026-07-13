@@ -1,34 +1,57 @@
 "use client";
 
-// Login real con Supabase Auth (magic link). El acceso de escritura queda
-// igualmente atado por RLS al email de Fernando, y /admin/dashboard lo protege
-// el middleware. Ver docs/supabase-schema.sql.
+// Login del admin: email + contraseña (Supabase Auth). El acceso queda
+// restringido a OWNER_EMAIL por el middleware y el guard del dashboard, y la
+// escritura por RLS. "Setear contraseña" manda un link de recuperación (una
+// sola vez) para elegir tu contraseña.
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { OWNER_EMAIL } from "@/lib/owner";
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "loading" | "reset-sent";
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onLogin(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("sending");
-    setMessage("");
+    setError("");
+    setStatus("loading");
     const supabase = createSupabaseBrowserClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/admin/dashboard`;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setStatus("error");
-      setMessage(error.message);
-    } else {
-      setStatus("sent");
+      setError(error.message);
+      setStatus("idle");
+      return;
     }
+    router.push("/admin/dashboard");
+    router.refresh();
+  }
+
+  async function onReset() {
+    setError("");
+    if (email !== OWNER_EMAIL) {
+      setError("Este panel es solo para el dueño del sitio.");
+      return;
+    }
+    setStatus("loading");
+    const supabase = createSupabaseBrowserClient();
+    const redirectTo = `${window.location.origin}/auth/callback?next=/admin/reset`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      setError(error.message);
+      setStatus("idle");
+      return;
+    }
+    setStatus("reset-sent");
   }
 
   return (
@@ -45,21 +68,21 @@ export default function AdminLoginPage() {
           </div>
           <div className="font-serif italic text-body text-muted mb-8">the only user this page was made for</div>
 
-          {status === "sent" ? (
+          {status === "reset-sent" ? (
             <div className="flex flex-col gap-3">
               <div className="text-body text-secondary leading-[1.6]">
-                Te mandé un magic link a <span className="text-primary">{email}</span>. Abrilo en este dispositivo
-                para entrar.
+                Te mandé un link a <span className="text-primary">{email}</span> para setear tu contraseña. Abrilo,
+                elegí una, y después entrás con email + contraseña.
               </div>
               <button
                 onClick={() => setStatus("idle")}
                 className="self-start font-mono text-meta text-faint hover:text-primary transition-colors duration-250"
               >
-                ← usar otro email
+                ← volver
               </button>
             </div>
           ) : (
-            <form className="flex flex-col gap-3.5" onSubmit={onSubmit}>
+            <form className="flex flex-col gap-3.5" onSubmit={onLogin}>
               <input
                 type="email"
                 required
@@ -68,20 +91,33 @@ export default function AdminLoginPage() {
                 placeholder="fernandotuquina@gmail.com"
                 className="bg-ink/60 border border-strong rounded-lg px-4 py-[13px] text-primary font-mono text-code transition-colors duration-250 outline-none focus:border-accent"
               />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="bg-ink/60 border border-strong rounded-lg px-4 py-[13px] text-primary font-mono text-code transition-colors duration-250 outline-none focus:border-accent"
+              />
               <button
                 type="submit"
-                disabled={status === "sending"}
+                disabled={status === "loading"}
                 className="mt-2 bg-accent border-none rounded-lg py-3.5 text-ink font-sans font-bold text-sm cursor-pointer transition-shadow duration-250 hover:shadow-glow-btn disabled:opacity-60 disabled:cursor-default"
               >
-                {status === "sending" ? "Enviando…" : "Send magic link →"}
+                {status === "loading" ? "Entrando…" : "Entrar →"}
               </button>
-              {status === "error" && (
-                <div className="font-mono text-meta text-accent">{message || "Algo falló. Probá de nuevo."}</div>
-              )}
+              {error && <div className="font-mono text-meta text-accent">{error}</div>}
+              <button
+                type="button"
+                onClick={onReset}
+                className="self-center mt-1 font-mono text-meta text-faint hover:text-primary transition-colors duration-250"
+              >
+                primera vez / olvidé mi contraseña
+              </button>
             </form>
           )}
 
-          <div className="mt-6 font-mono text-label text-faint text-center">SUPABASE AUTH · MAGIC LINK</div>
+          <div className="mt-6 font-mono text-label text-faint text-center">SUPABASE AUTH · EMAIL + PASSWORD</div>
         </div>
       </div>
       <Footer />
