@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { OWNER_EMAIL } from "@/lib/owner";
+import { isOwnerEmail } from "@/lib/owner";
 
 type Status = "idle" | "loading" | "reset-sent";
 
@@ -25,33 +25,46 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError("");
     setStatus("loading");
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        setError(error.message);
+        setStatus("idle");
+        return;
+      }
+      router.push("/admin/dashboard");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo conectar. Probá de nuevo.");
       setStatus("idle");
-      return;
     }
-    router.push("/admin/dashboard");
-    router.refresh();
   }
 
   async function onReset() {
     setError("");
-    if (email !== OWNER_EMAIL) {
+    if (!isOwnerEmail(email)) {
       setError("Este panel es solo para el dueño del sitio.");
       return;
     }
     setStatus("loading");
-    const supabase = createSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/admin/reset`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=/admin/reset`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (error) {
+        setError(error.message);
+        setStatus("idle");
+        return;
+      }
+      setStatus("reset-sent");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo conectar. Probá de nuevo.");
       setStatus("idle");
-      return;
     }
-    setStatus("reset-sent");
   }
 
   return (
@@ -86,6 +99,9 @@ export default function AdminLoginPage() {
               <input
                 type="email"
                 required
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="fernandotuquina@gmail.com"

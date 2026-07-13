@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getRepository } from "@/lib/content/get-repository";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DashboardClient, type DashboardData } from "@/components/admin/dashboard-client";
-import { OWNER_EMAIL } from "@/lib/owner";
+import { isOwnerEmail } from "@/lib/owner";
 
 // Server component: trae los datos reales del repositorio y protege el acceso
 // (además del middleware). La UI y las escrituras viven en DashboardClient.
@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
     const {
       data: { user },
     } = await createSupabaseServerClient().auth.getUser();
-    if (user?.email !== OWNER_EMAIL) redirect("/admin");
+    if (!isOwnerEmail(user?.email)) redirect("/admin");
   }
 
   const repo = getRepository();

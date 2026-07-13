@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { OWNER_EMAIL } from "@/lib/owner";
+import { isOwnerEmail } from "@/lib/owner";
 
 /**
  * Refresca la sesión de Supabase en cada request a /admin/* y protege el
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/admin/dashboard") && user?.email !== OWNER_EMAIL) {
+  if (request.nextUrl.pathname.startsWith("/admin/dashboard") && !isOwnerEmail(user?.email)) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/admin";
     return NextResponse.redirect(redirect);

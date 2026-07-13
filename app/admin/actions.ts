@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getRepository } from "@/lib/content/get-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { OWNER_EMAIL } from "@/lib/owner";
+import { isOwnerEmail } from "@/lib/owner";
 import type {
   NewBook,
   NewNote,
@@ -22,7 +22,7 @@ async function requireOwner() {
   const {
     data: { user },
   } = await createSupabaseServerClient().auth.getUser();
-  if (user?.email !== OWNER_EMAIL) throw new Error("No autorizado — iniciá sesión con tu cuenta.");
+  if (!isOwnerEmail(user?.email)) throw new Error("No autorizado — iniciá sesión con tu cuenta.");
 }
 
 function bump(...paths: string[]) {

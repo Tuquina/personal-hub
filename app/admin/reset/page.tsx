@@ -19,24 +19,30 @@ export default function AdminResetPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setStatus(data.user ? "ready" : "no-session");
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setStatus(data.user ? "ready" : "no-session"))
+      .catch(() => setStatus("no-session"));
   }, []);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setStatus("saving");
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(error.message);
+        setStatus("ready");
+        return;
+      }
+      router.push("/admin/dashboard");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo conectar. Probá de nuevo.");
       setStatus("ready");
-      return;
     }
-    router.push("/admin/dashboard");
-    router.refresh();
   }
 
   return (
