@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { InfoRequestForm } from "@/components/contact/info-request-form";
 
 const LINKS = [
   { label: "EMAIL", value: "fernandotuquina@gmail.com", href: "mailto:fernandotuquina@gmail.com", arrow: "→", external: false },
@@ -45,6 +46,7 @@ export default function ContactPage() {
             </a>
           ))}
         </div>
+        <InfoRequestForm />
       </div>
       <Footer />
     </>
